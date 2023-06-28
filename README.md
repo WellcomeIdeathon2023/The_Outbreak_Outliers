@@ -52,12 +52,5 @@ The code in this repository is licenced under a permissive [MIT licence](https:/
 │
 ├── reports            <- Generated analyses as HTML, PDF, Markdown, etc.
 │   └── figures        <- Generated graphics and figures to be used in reporting.
-│
-├── code               <- Source code for use in this project.
-|   ├── data           <- Scripts to generate data (if applicable).
-|   ├── features       <- Scripts to turn raw data into features.
-|   ├── models         <- Scripts to train models and then use trained models to make
-|   │                     predictions.
-|   └── visualization  <- Scripts to create visualizations.
 |
 ├── results            <- Final results and presented contents. 
