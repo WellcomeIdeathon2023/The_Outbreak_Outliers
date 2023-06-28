@@ -28,6 +28,14 @@ The code in this repository is licenced under a permissive [MIT licence](https:/
 ├── LICENSE
 ├── challenge.md       <- The challenge's background, objectives and questions.
 ├── README.md          <- This file.
+|
+├── code               <- Source code for use in this project.
+|   ├── data           <- Scripts to generate simulated data (if applicable).
+|   ├── features       <- Scripts to turn raw data into features.
+|   ├── models         <- Scripts to train models and then use trained models to make
+|   │                     predictions.
+|   └── visualization  <- Scripts to create visualizations.
+|
 ├── data
 │   ├── synthetic      <- Any simulated data (if applicable).
 │   ├── interim        <- Intermediate data that has been transformed.
