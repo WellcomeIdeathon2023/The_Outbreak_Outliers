@@ -1,0 +1,465 @@
+---
+title:           "Exploratory Data Analysis"
+subtitle:        "Sentiment Analysis"
+toc:             true
+number-sections: true
+code-fold:       true
+prefer-html:     true
+format: 
+    html:        default
+    ipynb:       default
+theme:           sketchy
+editor:          visual
+---
+
+```{r}
+#| label: setup-req_packages
+#| include: false
+
+install_pkgs <- function(){
+    # packages sets
+    req_pkgs <- 
+        list(.data_ingestion = c('readr'),
+             data_manipulation_general = c('tibble', 'dplyr', 'tidyr', 'janitor'),
+             data_manipulation_categoricals = c('forcats'),
+             data_manipulation_dates = c('zoo'),
+             data_tabulation = c('tableone', 'kableExtra'),
+             data_visualisation = c('ggplot2', 'ggrepel', 'cowplot', 'ggthemes', 'ggsci'),
+             core_text_manipulation = c('stringr', 'tidytext', 'tokenizers'),
+             supp_text_manipulation = c('stopwords'),
+             r_programming = c('purrr', 'rlang'),
+             utils = c('here', 'glue','magrittr'))
+    
+    to_install <- setdiff(unlist(req_pkgs), installed.packages())
+    
+    if(length(to_install) > 0 ) install.packages(to_install, 
+                                                 dependencies = TRUE,
+                                                 repos = "http://cran.us.r-project.org")
+}
+
+install_pkgs()
+```
+
+```{r}
+#| label: setup-libraries_and_functions
+#| include: false
+
+# Libraries
+library(magrittr)
+
+# Homebrew functions
+list(
+    here::here('code', 'data', 'prepare_vax_tweets_data.R'),
+    here::here('code', 'features', 'get_user_country.R'),
+    here::here('code', 'tabulation', 'missing_prop_table.R'),
+    here::here('code', 'visualisation', 'missing_matrix_plot.R'),
+    here::here('code', 'visualisation', 'transform_dist_plots.R'),
+    here::here('code', 'visualisation', 'univar_cat_bar_plot.R')) %>%
+    purrr::walk(source)
+```
+
+```{r}
+#| label: setup-one_off_functions
+#| include: false
+
+# Ad hoc function to append datasets created from vax_tweet.csv. Assumes the order of rows
+#  remains unchanged.
+append_ext_data <- function(.dataset, .path_ext_data){
+    .dataset %>%
+        dplyr::left_join(
+            .prepare_ext_data(.path_ext_data),
+            by = 'tweet_id')
+}
+
+.prepare_ext_data <- function(.path_ext_data){
+    readr::read_csv(
+        .path_ext_data,
+        show_col_types = FALSE,
+        progress = FALSE) %>%
+        dplyr::mutate(
+            tweet_id = dplyr::row_number()) %>%
+        dplyr::select(-dplyr::starts_with('...'))
+}
+#----------------------------------------------------------------------------------------------
+# Create a quick and dirty kable with preset options
+# `.dataset` A dataframe or tibble object
+# `.rows` The number of rows to show. If positive, shows first n rows. if negative, returns last few rows. If 0, which is the default, shows all rows.
+kreate <- function(.dataset, .rows = 0){
+    .dataset %>%
+        .show_rows(.rows) %>%
+        kableExtra::kbl() %>%
+        kableExtra::kable_paper(
+            lightable_options = c('striped', 'hover'),
+            full_width = FALSE
+            )
+}
+
+.show_rows <- function(.dataset, .rows){
+    if (.rows == 0) {
+        return(.dataset)
+    } else if (.rows > 0) {
+        return(head(.dataset, .rows))
+    } else if (.rows < 0) {
+        return(tail, .dataset, abs(.rows))
+    } else
+        rlang::abort(message = "unexpected value passed to .rows") 
+    # uninformative error is uninformative, but will do in this case
+}
+#----------------------------------------------------------------------------------------------
+# Create a quick and dirty table with numerical summaries for numeric variables
+univar_num_table <- function(.dataset) {
+    .dataset %>%
+        dplyr::select(tidyselect::where(is.numeric)) %>%
+        tidyr::pivot_longer(
+            cols = tidyselect::everything(),
+            names_to = 'Column',
+            values_to = '.values') %>%
+        dplyr::group_by(Column) %>%
+        dplyr::summarise(
+            mean = mean(.values, na.rm = TRUE),
+            sd = sd(.values, na.rm = TRUE),
+            q25 = quantile(.values, 0.25, na.rm = TRUE),
+            q50 = quantile(.values, 0.50, na.rm = TRUE),
+            q75 = quantile(.values, 0.75, na.rm = TRUE),
+            min = min(.values, na.rm = TRUE),
+            max = max(.values, na.rm = TRUE)) %>%
+        dplyr::transmute(
+            Column,
+            `Mean (SD)` = glue::glue("{prettyNum(mean, big.mark = ',')} (± {prettyNum(sd, big.mark = ',')})"),
+            `Median [IQR]` = glue::glue("{prettyNum(q50, big.mark = ',')} [{prettyNum(q25, big.mark = ',')}; {prettyNum(q75, big.mark = ',')}]"),
+            Range = glue::glue("min: {prettyNum(min, big.mark = ',')}; max: {prettyNum(max, big.mark = ',')}"))
+}
+
+```
+
+```{r}
+#| label: setup-data_preparation
+#| include: false
+#| warning: false
+
+tweets_df <- 
+    here::here('data', 'raw', 'vax_tweets.csv') %>%
+    prepare_vax_tweets_data()
+
+# Location data
+tweets_df <- 
+    tweets_df %>%
+    append_ext_data(here::here('data','external','location_roberta.csv')) %>%
+    dplyr::rename(
+        roberta_loc_guess = answer,
+        roberta_loc_score = score)
+
+# Sentiment analysis from distilbert
+tweets_df <- 
+    tweets_df %>%
+    append_ext_data(
+        here::here('data', 'external', 'sentiment_analysis_distilbert.csv')) %>%
+    dplyr::rename(
+        distilBERT_sentiment = label,
+        distilBERT_score = score)
+
+# Save interim data
+readr::write_rds(tweets_df, here::here('data','interim','vax_tweets_v0.RDS'))
+
+# Prepare tweet texts
+tweets_txt <- 
+    tweets_df %>%
+    dplyr::select(tweet_id, date, text)
+
+tweets_txt_tkn_words <- 
+    tweets_txt %>%
+    tidytext::unnest_tokens(
+        input = text,
+        output = word,
+        token = 'words',
+        format = 'text',
+        to_lower = TRUE)
+
+
+```
+
+## Introduction
+
+I will be performing sentiment analyses using several of the different approaches described on @fig-sentiment_analysis_flwcrt below. I will make some sligth changes that I think reflect a more accurate classification for methods of conducting sentiment analysis.
+
+![Thank you for this, Oliver](references/diagrams/sentiment_analysis_approaches.jpeg){#fig-sentiment_analysis_flwcrt fig-align="center"}
+
+I will also be providing some background information about each approach, and my own thoughts about it.
+
+The purpose of this document is to provide some insights into each of the different techniques and help with the decision of how to proceed.
+
+## Lexicon Based Approaches
+
+### Dictionary based approach
+
+Here I think a better sub-classification scheme may be:
+
+1.  Single word/ keyword spotting
+    1.  In this case, a single word (unigram) is matched with a particular sentiment. This is obviously a naive approach with several flaws. Perhaps the most obvious one is that it neglects **negation**. Another flaw is that it is based on surface features.
+2.  Lexical affinity
+    1.  This is an slightly more sophisticated approach compared to keyword spotting and it is based on assigning a probability (rather that a hard label) to a certain word. For example, the word accident instead of receiving a label of either positive or negative, is given a probability (e.g. 0.7 of being negative). Dictionary of lexical affinity are usually derived from *linguistic corpora*. Although an step up from keyword spotting, they still lack the capacity to incorporate negation into the final output and they are usually domain-dependent, so it is hard to find generalisable models.
+
+#### Keyword spotting
+
+```{r}
+#| label: keyword_sentiment_lexicons
+#| warning: false
+
+afinn_lex <- tidytext::get_sentiments('afinn')
+bing_lex <- tidytext::get_sentiments('bing')
+nrc_lex <- tidytext::get_sentiments('nrc')
+
+sentiment_afinn <- 
+    tweets_txt_tkn_words %>%
+    dplyr::inner_join(afinn_lex, by = 'word')
+
+sentiment_bing <- 
+    tweets_txt_tkn_words %>%
+    dplyr::inner_join(bing_lex, by = 'word')
+
+sentiment_nrc <- 
+    tweets_txt_tkn_words %>%
+    dplyr::inner_join(nrc_lex, by = 'word')
+    
+```
+
+##### AFINN Lexicon
+
+The AFINN lexicon gives a score of -5 to 5 to classify the sentiment from extremely negative to extremely positive. The overall sentiment is given by the sum of these values. See @tbl_afinn_sample below for examples.
+
+```{r}
+#| label: tbl-afinn_sample
+#| tbl-cap: AFINN Lexicon (sample)
+set.seed(13)
+afinn_lex %>%
+    dplyr::slice_sample(n = 20) %>%
+    kreate()
+```
+
+```{r}
+#| label: fig-sentiment_over_time_afinn
+#| fig-cap: Change of sentiment over time (agg. to week) according to AFINN lexicon
+afinn_plot <- 
+    sentiment_afinn %>%
+    dplyr::group_by(tweet_id) %>%
+    dplyr::mutate(afinn_sentiment = sum(value)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct(tweet_id, date, afinn_sentiment) %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(week = cut.Date(date, breaks = '1 week', right = TRUE),
+                  week = as.Date(week)) %>%
+    dplyr::group_by(week) %>%
+    dplyr::mutate(afinn_sentiment = mean(afinn_sentiment)) %>%
+    dplyr::ungroup() %>%
+    dplyr::distinct(week, afinn_sentiment) %>%
+    dplyr::mutate(
+        sentiment = dplyr::case_when(
+            afinn_sentiment > 0 ~ 'positive',
+            afinn_sentiment < 0 ~ 'negative',
+            TRUE ~ 'neutral'),
+        sentiment = factor(sentiment, levels= c('positive', 'neutral', 'negative'))) %>%
+    ggplot2::ggplot(
+        mapping = ggplot2::aes(
+            x = week,
+            y = afinn_sentiment,
+            colour = sentiment)) +
+    ggplot2::geom_col(fill = 'transparent') +
+    ggplot2::labs(y = 'Aggregated\nsentiment (AFINN)', x = '') +
+    ggplot2::scale_x_date(date_labels = '%b %Y') +
+    ggplot2::scale_colour_manual(values = c('#99d8c9', '#fc9272')) +
+    ggthemes::theme_tufte() +
+    ggplot2::theme(
+        text = ggplot2::element_text(family = 'Helvetica', size = 12),
+        axis.text.x = ggplot2::element_text(angle = 25),
+        legend.position = 'bottom')
+
+plot(afinn_plot)
+```
+
+##### Bing Lexicon
+
+Gives a hard label (i.e. positive, negative) to each word. See @tbl-bing_sample below for examples.
+
+```{r}
+#| label: tbl-bing_sample
+#| tbl-cap: Bing Lexicon (sample)
+set.seed(13)
+bing_lex %>%
+    dplyr::slice_sample(n = 20) %>%
+    kreate()
+```
+
+```{r}
+#| label: fig-sentiment_over_time_bing
+#| fig-cap: Change of sentiment over time (agg. to week) according to bing lexicon
+plot_sentiment_overtime <- function(.sentiment_df, .ylabel = ''){
+    .sentiment_df %>%
+        dplyr::mutate(
+            sentiment_score = dplyr::case_when(
+                sentiment == 'positive' ~ 1,
+                sentiment == 'negative' ~ -1,
+                TRUE ~ 0),
+            week = cut.Date(date, breaks = '1 week', right = TRUE),
+            week = as.Date(week)) %>%
+        dplyr::arrange(date) %>%
+        dplyr::group_by(week) %>%
+        dplyr::mutate(overall_sentiment = mean(sentiment_score)) %>%
+        dplyr::ungroup() %>%
+        dplyr::distinct(week, overall_sentiment) %>%
+        dplyr::mutate(
+            sentiment_label = dplyr::case_when(
+                overall_sentiment > 0 ~ 'positive',
+                overall_sentiment < 0 ~ 'negative',
+                TRUE ~ 'neutral'),
+            sentiment_label = factor(sentiment_label, levels = c('positive', 'neutral', 'negative'))) %>%
+        ggplot2::ggplot(
+            mapping = ggplot2::aes(
+                x = week,
+                y = overall_sentiment,
+                colour = sentiment_label)) +
+        ggplot2::geom_col(fill = 'transparent') +
+        ggplot2::labs(y = .ylabel, x = '', colour = 'sentiment') +
+        ggplot2::scale_x_date(date_labels = '%b %Y') +
+        ggplot2::scale_colour_manual(values = c('#99d8c9', '#fc9272')) +
+        ggthemes::theme_tufte() +
+        ggplot2::theme(
+            text = ggplot2::element_text(family = 'Helvetica', size = 12),
+            axis.text.x = ggplot2::element_text(angle = 25),
+            legend.position = 'bottom')
+        
+}
+
+bing_plot <- 
+    sentiment_bing %>%
+    plot_sentiment_overtime('Aggregated\nsentiment (Bing)') 
+
+plot(bing_plot)
+```
+
+##### NRC Lexicon
+
+The NRC lexicon assigns words into categories of positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust. See @tbl-nrc_sample below for examples.
+
+```{r}
+#| label: tbl-nrc_sample
+#| tbl-cap: NRC Lexicon (sample)
+
+set.seed(13)
+nrc_lex %>%
+    dplyr::slice_sample(n = 20) %>%
+    kreate()
+```
+
+```{r}
+#| label: fig-sentiment_over_time_nrc
+#| fig-cap: Change of sentiment over time (agg. to week) according to NRC lexicon
+plot_sentiment_overtime <- function(.sentiment_df, .ylabel = '', .colours = c('#99d8c9', '#fc9272')){
+    .sentiment_df %>%
+        dplyr::mutate(
+            sentiment_score = dplyr::case_when(
+                sentiment == 'positive' ~ 1,
+                sentiment == 'negative' ~ -1,
+                TRUE ~ 0),
+            week = cut.Date(date, breaks = '1 week', right = TRUE),
+            week = as.Date(week)) %>%
+        dplyr::arrange(date) %>%
+        dplyr::group_by(week) %>%
+        dplyr::mutate(overall_sentiment = mean(sentiment_score)) %>%
+        dplyr::ungroup() %>%
+        dplyr::distinct(week, overall_sentiment) %>%
+        dplyr::mutate(
+            sentiment_label = dplyr::case_when(
+                overall_sentiment > 0 ~ 'positive',
+                overall_sentiment < 0 ~ 'negative',
+                TRUE ~ 'neutral'),
+            sentiment_label = factor(sentiment_label, levels = c('positive', 'neutral', 'negative'))) %>%
+        ggplot2::ggplot(
+            mapping = ggplot2::aes(
+                x = week,
+                y = overall_sentiment,
+                colour = sentiment_label)) +
+        ggplot2::geom_col(fill = 'transparent') +
+        ggplot2::labs(y = .ylabel, x = '', colour = 'sentiment') +
+        ggplot2::scale_x_date(date_labels = '%b %Y') +
+        ggplot2::scale_colour_manual(values = .colours) +
+        ggthemes::theme_tufte() +
+        ggplot2::theme(
+            text = ggplot2::element_text(family = 'Helvetica', size = 12),
+            axis.text.x = ggplot2::element_text(angle = 25),
+            legend.position = 'bottom')
+        
+}
+
+nrc_plot <-
+    sentiment_nrc %>%
+    dplyr::filter(sentiment %in% c('positive', 'negative')) %>%
+    plot_sentiment_overtime('Aggregated\nsentiment (NRC)') 
+
+plot(nrc_plot)
+```
+
+#### Conclusions
+
+Potential issues:
+
+-   Because lexicons have only a limited number of words, not all tweets and not all of the words in a given tweet's text are going to be scored
+
+-   Some of the words lexicons score as positive (e.g. free) are commonly used by anti-vaxxers groups
+
+-   We would be finding the overall sentiment of the tweet, NOT the sentiment towards vaccination, which is what we actually want. . .
+
+```{=html}
+<!-- -->
+```
+-   Loss of data (see @tbl-lexicon_retention below):
+
+    -   All three lexicons drop between a third and a fourth of the data. See below.
+
+    -   Likewise, not all words in a tweet's text are used.
+
+```{r}
+#| label: tbl-lexicon_retention
+#| tbl-cap: Tweets kept by using each lexicon dictionary
+get_unique_tweets_count <- function(.dataset){
+    .dataset %>%
+        dplyr::pull(tweet_id) %>%
+        unique() %>%
+        length()
+}
+
+quick_prcnts <- function(x1, x2){
+    format(round((x1/x2)*100,2), nsmall = 2)
+}
+
+lexicon_tweet_retention <- function(.lexicon_tweets, .total){
+    .x_num <- get_unique_tweets_count(.lexicon_tweets)
+    
+    .x_num_pretty <- prettyNum(.x_num, big.mark = ',')
+    .total_pretty <- prettyNum(.total, big.mark = ',')
+    
+    glue::glue("{.x_num_pretty} out of {.total_pretty} ({quick_prcnts(.x_num, .total)}%)")
+}
+
+list(sentiment_afinn, sentiment_bing, sentiment_nrc) %>%
+    purrr::map_chr(lexicon_tweet_retention, 
+               .total = get_unique_tweets_count(tweets_df)) %>%
+    tibble::tibble(
+        lexicon = c('AFINN', 'Bing', 'NRC'),
+        retention = .) %>%
+    kreate()
+```
+
+```{r}
+#| label: fig-comparison_lexicon_distilBERT
+#| fig-cap: 'A comparison between the three lexicons and the result from distilBERT'
+#| warning: false
+distilBERT_plot <- 
+    tweets_df %>%
+    dplyr::select(tweet_id, date, sentiment = distilBERT_sentiment) %>%
+    dplyr::mutate(sentiment = stringr::str_to_lower(sentiment)) %>%
+    plot_sentiment_overtime(.ylabel = 'Aggregated\nsentiment (distilBERT)', .colours = '#fc9272') 
+
+cowplot::plot_grid(afinn_plot, bing_plot, nrc_plot, distilBERT_plot, labels = NULL)
+
+
+```

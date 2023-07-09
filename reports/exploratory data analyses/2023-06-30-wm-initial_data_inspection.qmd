@@ -1,0 +1,496 @@
+---
+title:           "Initial Data Inspection"
+author:          "Walter Muruet"
+toc:             true
+number-sections: true
+code-fold:       true
+prefer-html:     true
+format:          
+    html: default
+    ipynb: default
+theme:           sketchy
+editor:          visual
+---
+
+```{r}
+#| label: setup-install-packages
+#| include: false
+
+install_pkgs <- function(){
+    req_pkgs <- 
+        c(
+            # Data ingestion
+            'readr',
+            # Data preparation
+            'tibble',
+            'dplyr',
+            'tidyr',
+            'janitor',
+            ## Data preparation - categorical variables
+            'forcats',
+            ## Data preparation - datetime variables
+            'zoo',
+            # Tables
+            'tableone',
+            'kableExtra',
+            # Data visualisation
+            'ggplot2',
+            'cowplot',
+            'ggrepel',
+            'ggthemes',
+            'ggsci',
+            # Text manipulation and analysis
+            'stringr',
+            'tidytext',
+            'tokenizers',
+            ## Additional resources for text analysis
+            'stopwords',
+            # Programming
+            'purrr',
+            'rlang',
+            # Utilities - OS-agnostic file paths
+            'here',
+            # Utilities - Pipes and pipes accessories
+            'magrittr'
+             )
+    to_install <- setdiff(req_pkgs, installed.packages())
+    
+    if(length(to_install) > 0 ) install.packages(to_install, 
+                                                 dependencies = TRUE,
+                                                 repos = "http://cran.us.r-project.org")
+}
+
+install_pkgs()
+```
+
+```{r}
+#| label: setup-libraries
+#| include: false
+library(magrittr)
+```
+
+```{r}
+#| label: setup-source
+#| include: false
+
+list(
+    here::here('code', 'features', 'get_user_country.R'),
+    here::here('code', 'tabulation', 'missing_prop_table.R'),
+    here::here('code', 'visualisation', 'missing_matrix_plot.R'),
+    here::here('code', 'visualisation', 'transform_dist_plots.R'),
+    here::here('code', 'visualisation', 'univar_cat_bar_plot.R')) %>%
+    purrr::walk(source)
+```
+
+```{r}
+#| label: setup-one-off-functions
+#| include: false
+
+# Create a quick and dirty kable with preset options
+# `.dataset` A dataframe or tibble object
+# `.rows` The number of rows to show. If positive, shows first n rows. if negative, returns last few rows. If 0, which is the default, shows all rows.
+kreate <- function(.dataset, .rows = 0){
+    .dataset %>%
+        .show_rows(.rows) %>%
+        kableExtra::kbl() %>%
+        kableExtra::kable_paper(
+            lightable_options = c('striped', 'hover'),
+            full_width = FALSE
+            )
+}
+
+.show_rows <- function(.dataset, .rows){
+    if (.rows == 0) {
+        return(.dataset)
+    } else if (.rows > 0) {
+        return(head(.dataset, .rows))
+    } else if (.rows < 0) {
+        return(tail, .dataset, abs(.rows))
+    } else
+        rlang::abort(message = "unexpected value passed to .rows") 
+    # uninformative error is uninformative, but will do in this case
+}
+
+# Create a quick and dirty table with numerical summaries for numeric variables
+univar_num_table <- function(.dataset) {
+    .dataset %>%
+        dplyr::select(tidyselect::where(is.numeric)) %>%
+        tidyr::pivot_longer(
+            cols = tidyselect::everything(),
+            names_to = 'Column',
+            values_to = '.values') %>%
+        dplyr::group_by(Column) %>%
+        dplyr::summarise(
+            mean = mean(.values, na.rm = TRUE),
+            sd = sd(.values, na.rm = TRUE),
+            q25 = quantile(.values, 0.25, na.rm = TRUE),
+            q50 = quantile(.values, 0.50, na.rm = TRUE),
+            q75 = quantile(.values, 0.75, na.rm = TRUE),
+            min = min(.values, na.rm = TRUE),
+            max = max(.values, na.rm = TRUE)) %>%
+        dplyr::transmute(
+            Column,
+            `Mean (SD)` = glue::glue("{prettyNum(mean, big.mark = ',')} (± {prettyNum(sd, big.mark = ',')})"),
+            `Median [IQR]` = glue::glue("{prettyNum(q50, big.mark = ',')} [{prettyNum(q25, big.mark = ',')}; {prettyNum(q75, big.mark = ',')}]"),
+            Range = glue::glue("min: {prettyNum(min, big.mark = ',')}; max: {prettyNum(max, big.mark = ',')}"))
+}
+
+
+
+```
+
+```{r}
+#| label: data-ingestion
+#| include: false
+
+tweets_df <-
+    readr::read_csv(here::here('data','raw','vax_tweets.csv'),
+                    col_types = readr::cols_only(
+                      user_location    = readr::col_character(),
+                      user_description = readr::col_character(),
+                      user_followers   = readr::col_integer(),
+                      user_friends     = readr::col_integer(),
+                      user_favourites  = readr::col_integer(),
+                      user_verified    = readr::col_logical(),
+                      date             = readr::col_date(format = "%d/%m/%Y %H:%M"),
+                      text             = readr::col_character(),
+                      hashtags         = readr::col_character(),
+                      is_retweet       = readr::col_logical()),
+                    progress = FALSE, 
+                    show_col_types = FALSE)
+
+# NB: A warning is thrown due to a 'nameless' index column in the csv file. This column is not included in tweets_df.
+
+```
+
+## Data Acquisition Process
+
+The `vax_tweets.csv` file was created from data obtained by accessing Tweets between 2020-08-09 to 2022-09-14 with the hashtag #CovidVaccine, according to the data providers (Wellcome Ideathon 2023 team).
+
+::: callout-caution
+However, as we will see below, about 15% of the data set's entries have missing values for hashtags, possibly suggesting an slightly different data acquisition process that the one described.
+:::
+
+## A First Look at the Data
+
+Using `dplyr::glimpse()` we can appreciate the data contains 100,000 examples of Tweets each one described by ten features. Four features are of type characters (`user_location`, `user_description`, `text` and `hashtags`), three are numeric/integers (`user_followers`, `user_friends`, `user_favourites`), two are logical (`user_verified`, `is_retweet`) and one is date (`date`).
+
+Based on this information, we may want to do some data preparation before proceeding with any further data inspection. We will do this in the next section ([Data Preparation](#sec-data_prep))
+
+```{r}
+#| label: data-glimpse
+#| lst-label: data-glimpse
+#| tbl-cap: 'Initial glimpse at the data'
+dplyr::glimpse(tweets_df)
+```
+
+## Data Preparation {#sec-data_prep}
+
+Data preparation consists in the following steps:
+
+1.  Add a `tweet_id` column. This will help us keep track of provenance when we start manipulating text fields
+2.  Removing leading and trailing square brackets from `hastags`.
+
+```{r}
+#| label: data_prep
+#| tbl-cap: "Much better!"
+#| tbl-cap-location: bottom
+tweets_df <-
+    tweets_df %>%
+    dplyr::mutate(
+        tweet_id = dplyr::row_number(),
+        hashtags = stringr::str_remove_all(hashtags, pattern = '^\\[|\\]$') 
+        ) %>%
+    dplyr::relocate(tweet_id)
+
+tweets_df %>%
+    kreate(3)
+    
+```
+
+## Data Quality
+
+### Duplicated observations
+
+```{r}
+#| label: duplicates
+
+tweets_df %>%
+    janitor::get_dupes(-tweet_id) %>%
+    dplyr::relocate(tweet_id) %>%
+    kreate()
+```
+
+There are no duplicated observations as such. However, `tweet_id`s 32,812, 43,903 and 69,622 have only missing values. These observations should not have been matched when the tweets were fetched. It is possible that `vax_tweets.csv` was created by appending csv files together and these were extra rows at the end of each table. . . At any rate, these rows are excluded from all the results below.
+
+```{r}
+#| label: drop_all_nas_rows
+#| include: false
+tweets_df <- 
+    tweets_df %>%
+    dplyr::filter(dplyr::if_any(-tweet_id, ~!is.na(.x)))
+
+```
+
+### Missing data
+
+```{r}
+#| label: fig-missing
+#| fig-cap: 'Missing values matrix'
+#| warning: false
+tweets_df %>%
+    dplyr::select(-tweet_id) %>%
+    missing_matrix_plot()
+```
+
+@fig-missing shows that the columns `user_location`, `user_description`, and `hashtags` have the greatest amount of missing values. @tbl-missing below shows the actual quantities of missing values per column.
+
+```{r}
+#| label: tbl-missing
+#| tbl-cap: 'Proportion of missing values per column'
+#| tbl-cap-location: top
+tweets_df %>%
+    dplyr::select(-tweet_id) %>%
+    missing_prop_table() %>%
+    kreate()
+```
+
+## Tweets Over Time
+
+`vax_tweets.csv` contains tweets from the years 2020,2021 and 2022. The earliest tweet happened on `r format(min(tweets_df$date, na.rm = TRUE), '%d %B of %Y')` and the last tweet `r format(max(tweets_df$date, na.rm = TRUE), '%d %B of %Y')`. @fig-tweets-timeline below shows the number of tweets aggregated at the week level. The rug is meant to give a sense of the amount of verified users each week.
+
+```{r}
+#| label: fig-tweets-timeline
+#| fig-cap: 'Time series of tweets'
+#| warning: false
+
+tweets_df %>%
+    dplyr::transmute(date,
+                     week = cut.Date(date, breaks = '1 week'),
+                     week = as.Date(week),
+                     verified = user_verified) %>%
+    dplyr::group_by(week) %>%
+    dplyr::transmute(n = dplyr::n(),
+                     verified = sum(verified, na.rm = TRUE)) %>%
+    ggplot2::ggplot(mapping = ggplot2::aes(x = week, y = n)) +
+    ggplot2::geom_line(linetype = 'dashed', colour = '#377eb8') +
+    ggplot2::geom_point(colour = '#377eb8') +
+    ggplot2::geom_rug(mapping = ggplot2::aes(y = verified), sides = 'b', colour = '#984ea3') +
+    ggplot2::labs(y = 'Tweet count', x = '') +
+    ggplot2::scale_x_date(date_labels = '%b %y') +
+    ggthemes::theme_tufte() +
+    ggplot2::theme(text = ggplot2::element_text(family = 'Helvetica', size = 12))
+
+```
+
+## Qualitative Data
+
+### User location
+
+User location contains a mixture of cities, countries and miscellaneous information ('not in London'). Furthermore, places may be written in full ('United States'), as abbreviation ('UK'), as a combination of state/district and country ('Bengaluru, India'), city and state ('Denver, CO') among other variations. Additionally, city names are not unique ('London, Ontario, Canada'...damn Europeans, lacking creativity...). These are some issues we need to think about solving if we want to use location data.
+
+Some potential solutions include:
+
+1.  Not using user location data. Plain, simple and mediocre. Yay!
+2.  Leaving it as-it-is (see [Raw user location data])
+3.  Adapting/expanding on someone else's work.
+    1.  This could be using code to 'manually' harmonise locations
+    2.  Use a pre-trained transformer
+    3.  A mixture of these two, where we can fine tune a pre-trained transformer using some of our 'manually labeled data'.
+
+Some further considerations:
+
+1.  How much do we care for the cleanliness of location data? For the purpose of the prototype we don't really need a squeaky clean `user_location`. Our goal is to produce a proof of concept, and have some clear ideas on how we will refine the process afterwards.
+
+2.  Furthermore, even if we do a terrific job cleaning `user_location`, its granularity is unlikely to be great for most of the tweets, so perhaps the cost-benefit of devoting too much time to this is questionable at best.
+
+3.  Let's think about what we want to do with `user_location` and then consider how much does that adds to the project and the final result. . .
+
+    #### Raw user location data
+
+```{r}
+#| label: fig-raw_user_location
+#| fig-cap: 'User location data (Raw)'
+#| warning: false
+
+list(
+    .drop_na = list(FALSE,TRUE),
+    .y_label = list(NULL,'')) %>%
+purrr::pmap(
+    univar_cat_bar_plot,
+    .dataset = tweets_df,
+    .column = 'user_location',
+    .n_largest = 30) %>%
+    cowplot::plot_grid(plotlist = ., labels = 'AUTO')
+```
+
+In @fig-raw_user_location subplot A shows frequencies including missing values, while in subplot B these were removed. Notice the difference in the scale between x axes. These represent the raw data as it is, meaning a bit better mileage could be obtained by doing some bare minimum data wrangling, such as turning all letter to lower caps.
+
+#### Manual cleaning of user location data
+
+Adapting the work user \[ANDRADA\](https://www.kaggle.com/andradaolteanu) did in Kaggle for cleaning location data of tweets, I have repurpose it into a function to somewhat clean our data. It's still a work in progress, though. In @bl-user_location_manual_01 you can compare a 'random' slice of the data set to judge the results by yourselves.
+
+```{r}
+#| label: tbl-user_location_manual_01
+#| tbl-cap: 'Not perfect by any means, but is something. . .'
+#| tbl-cap-location: bottom
+tweets_df <- 
+    tweets_df %>%
+    get_user_country(user_location, country)
+
+set.seed(13)
+
+tweets_df %>%
+    dplyr::select(tweet_id, user_location, country) %>%
+    dplyr::slice_sample(n = 30) %>%
+    kreate()
+```
+
+```{r}
+#| label: fig-user_location_manual_01
+#| fig-cap: User location data after some manual cleaning
+univar_cat_bar_plot(tweets_df, country, .drop_na = TRUE, .n_largest = 30)
+```
+
+Compare @fig-user_location_manual_01 with @fig-raw_user_location. After some manual cleaning, most tweets appear to be coming from the US, not India. This is not that surprising as the hashtags used to extract the data were in English. However, there is also some bias involve. The list mapping places to the US is several times longer than the one for India.
+
+#### Using a pre-trained transformer
+
+```{r}
+#| label: user_location_roberta_01
+#| warning: false
+loc_df <- 
+    readr::read_csv(
+        here::here('data', 'external', 'location_roberta.csv'),
+        col_types = readr::cols_only(
+            score = readr::col_double(),
+            answer = readr::col_character()),
+        show_col_types = FALSE,
+        progress = FALSE) %>%
+    dplyr::mutate(tweet_id = dplyr::row_number()) %>%
+    dplyr::rename(roberta_score = score,
+                  roberta_pred = answer)
+
+tweets_df <- 
+    dplyr::left_join(tweets_df, loc_df, by = 'tweet_id')
+```
+
+Using a "deepset/roberta-base-squad2" pre-train transformer out-of-the-box model, we extracted location data from the raw `user_location`. In @fig-user_loc_raw_vs_roberta, it is possible to appreciate that, even if by no means perfect, it greatly helped in harmonising `user_location`, leading to a decrease in cardinality (i.e. unique values) from `r length(unique(tweets_df$user_location))` in the raw column to `r length(unique(tweets_df$roberta_pred))` (i.e. `r (length(unique(tweets_df$roberta_pred))/length(unique(tweets_df$user_location)))*100`% of the original).
+
+```{r}
+#| label: fig-user_loc_raw_vs_roberta
+#| fig-cap: 'Comparison between raw values and cleaned by roberta'
+#| warning: false
+
+list(univar_cat_bar_plot(tweets_df, user_location, .n_largest = 30),
+     univar_cat_bar_plot(tweets_df, roberta_pred, .y_label = '', .n_largest = 30)) %>%
+    cowplot::plot_grid(plotlist = ., labels = 'AUTO')
+```
+
+```{r}
+#| label: tbl-raw_vs_roberta
+#| tbl-cap: 'Not a magic bullet by any means. . .'
+#| tbl-cap-location: bottom
+set.seed(13)
+
+tweets_df %>%
+    dplyr::slice_sample( n = 100) %>%
+    dplyr::select(tweet_id, country, user_location, roberta_pred) %>%
+    kreate()
+```
+
+```{r}
+#| label: tbl-roberta_advantages
+#| tbl-cap: 'Some improvement . . .'
+
+tweets_df %>%
+    dplyr::filter(
+        (country == 'US' & grepl('sydney', user_location, ignore.case = TRUE)) |
+        (country == 'UK' & grepl('milwaukee', user_location, ignore.case = TRUE)) |
+        (country == 'US' & grepl('melbourne', user_location, ignore.case = TRUE))) %>%
+    dplyr::select(country, user_location, roberta_pred) %>%
+    kreate()
+
+```
+
+### Hashtags
+
+```{r}
+#| label: hashtags
+hashtag_df <- 
+    tweets_df %>%
+    dplyr::select(tweet_id, hashtags)
+
+hashtag_tkns <- 
+    hashtag_df %>%
+    tidytext::unnest_tokens(
+        input = hashtags,
+        output = hashtag,
+        token = 'words',
+        format = 'text',
+        drop = TRUE)
+```
+
+```{r}
+#| label: fig-hashtag_counts
+#| fig-cap: Frequency of the 30 most common hashtags
+univar_cat_bar_plot(hashtag_tkns, hashtag, .n_largest = 30)
+```
+
+### User verified and retweet status
+
+```{r}
+#| label: tbl-user_ver_retweet
+#| tbl-cap: Verified and retweet status
+tableone::CreateCatTable(
+    vars = c('user_verified', 'is_retweet'),
+    data = tweets_df) %>%
+    tableone::kableone()
+```
+
+From @tbl-user_ver_retweet we can observe that only about 1 out of every tweets in our data come from an user with verified status. None of the tweets in our data were flagged as retweets.
+
+## Numerical Data
+
+### Favourites, followers, and friends
+
+@tbl-fffs below provides descriptive statistics for the number of user favourites, followers, and friends. @fig-favourites, @fig-followers and @fig-friends provide visualisation of their distribution. Notice that all three variables are heavily skewed, as one would expect. All three distribution seem to benefit the most of applying a **log transformation**, a detail that may be important for modeling. However, more sophisticated methods, i.e. BoxCox and YeoJohnson, may provide better results and are worth exploring.
+
+```{r}
+#| label: tbl-fffs
+#| tbl-cap: Number of user followers, friends, and favourites
+
+tweets_df %>%
+    dplyr::select(-tweet_id) %>%
+    univar_num_table() %>%
+    kreate()
+
+```
+
+```{r}
+#| label: fig-favourites
+#| fig-cap: 'Distribution of user favourites and the effect of common transformations'
+#| warning: false
+
+tweets_df %>%
+    transform_dist_plots(user_favourites)
+
+```
+
+```{r}
+#| label: fig-followers
+#| fig-cap: 'Distribution of user followers and the effect of common transformations'
+#| warning: false
+
+tweets_df %>%
+    transform_dist_plots(user_followers)
+```
+
+```{r}
+#| label: fig-friends
+#| fig-cap: 'Distribution of user friends and the effect of common transformations'
+#| warning: false
+
+tweets_df %>%
+    transform_dist_plots(user_friends)
+```

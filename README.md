@@ -1,30 +1,51 @@
-# README
+# Wellcome Ideathon 2023
 
-This is your private repository for working on the challenges in the Wellcome Data Science Ideathon. This repository is maintained and monitored by Wellcome staff and will be made public after July 13 2023. Feel free to create additional folders in this repository but please use the existing ones as follows:
+**The Outbreak Outliers** - London School of Hygiene and Tropical Medicine
 
--   `data` - Any data that is loaded from your scripts (excluding data scraped/downloaded from the web) should be uploaded to this folder. Simulated data should be reproducible.
--   `code` - All code used as part of your solution should be uploaded this folder and is expected to be reproducible.
--   `results` - Final results, including presented slides and other content, should be uploaded to this folder.
+## Noticeboard
 
-# Getting started
+-   **1st of July 2023**
+    -   You can now find `vax_tweets_v0.RDS`
+        -   This is a serialised version of the original data set with the following changes:
+            -   The following columns are added:
+                -   `tweet_id`, `roberta_loc_score`, `roberta_loc_guess`, `distilBERT_sentiment`, `distilBERT_score`
+            -   Three rows with only missing values were removed
+            -   The `date` column is already formatted as date
+            -   Square brackets were removed from the `hashtags` column
+        -   You can find it in data \> interim \> `vax_tweets_v0.RDS`
+-   **30th of June 2023**
+    -   You can find the initial data inspection analysis as jupyter notebook [here](https://github.com/dzanahmed/welcome-ideathon-lshtm/blob/main/notebooks/2023-06-29-wm-initial_data_inspection.ipynb)
+    -   PDF and HTML versions can be found on the [Google Drive](https://drive.google.com/drive/folders/1KqvLO_R7nze59G0euTbrdTeu7DDfmTak)
+        -   Note that the HTML version may require downloading the files first.
 
-## Project structure
+## Quick Start
 
-This project uses a standardised setup as a means to make it easier for newcomers (as well as for our future selves, hello future me!) to understand and follow all the steps done to solve the challenge.
+All documentation is available at our [Google Drive](https://drive.google.com/drive/folders/1ZrdLlu4LGe-u2xZihLHmbji46DL9KnZS?usp=sharing).\
+Also check the references folder
 
-The structure outline here is still tentative and subject to change as the project evolves. Relevant updates to the documentation will be provided to reflect any changes to project structure
+## About
 
-The project structure is based on the folders provided by the Wellcome Ideathon Team (Thanks Raphael) as well as the ones described in [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/#cookiecutter-data-science) and by William Noble in [PLOS Computational Biology](https://doi.org/10.1371/journal.pcbi.1000424).
+### This Repository
 
-A concise description of the folders and their contents can be found under APPENDIX A.
+Github repo for team The Outbreak Outliers (MSc HDS \@ LSTHM) - Wellcome Ideathon 2023
 
-# LICENCE
+The project's layout is based on the requirements from Wellcome and the suggestions made in [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/#cookiecutter-data-science) and in the paper by William Noble in [PLOS Computational Biology](https://doi.org/10.1371/journal.pcbi.1000424). See Appendix A bellow for a description about what each folder is meant for.
 
-The code in this repository is licenced under a permissive [MIT licence](https://opensource.org/licenses/MIT). All other content is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This means you may use any content in this repository as long as you credit the authors.
+### Us
 
-# APPENDICES
+[Gabriel](https://github.com/gabrielbattcock) - Future Bollywood star in the making
 
-## APPENDIX A
+[Oliver](https://github.com/oliverodolin)
+
+[Szymon](https://github.com/vvitomino)
+
+[Dzan](https://github.com/dzanahmed)
+
+[Walter](https://github.com/Walter-Muruet)
+
+## APPENDICES
+
+### APPENDIX A
 
 ├── LICENSE ├── challenge.md \<- The challenge's background, objectives and questions.\
 ├── README.md \<- This file.\
