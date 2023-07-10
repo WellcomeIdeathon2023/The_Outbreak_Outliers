@@ -65,6 +65,8 @@ topic_df <- regex %>%
   ) 
 
 
+ggplot(data = df, aes(x = date, y = avg, fill = VADER_label))+
+  geom_line()
 
 topic_df %>% 
   group_by(topic) %>% 
@@ -318,7 +320,7 @@ server <- function(input, output) {
           # "Topic 5" = "#4285F4"
         ),
         labels = c(
-          "Vaccine filter" = "vaccine_filter",
+          "Vaccine" = "vaccine_filter",
           "Topic 2" = "hesitancy_filter",
           "Topic 3" = "safety_filter",
           "Topic 4" = "mistrust_filter"
