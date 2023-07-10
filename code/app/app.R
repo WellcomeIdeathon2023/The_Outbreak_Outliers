@@ -242,7 +242,7 @@ ui <- page_navbar(
   )
   )
 
-s
+
 
 # Enable thematic
 thematic::thematic_shiny(font = "auto")
