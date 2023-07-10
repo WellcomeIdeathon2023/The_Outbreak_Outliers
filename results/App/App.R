@@ -51,6 +51,12 @@ all_hashtags <-
   explode_python_lists() %>%
   stringr::str_to_lower()
 
+all_words <- 
+  tweets_df %>%
+  dplyr::pull(words) %>%
+  explode_python_lists() %>%
+  stringr::str_to_lower()
+
 # Main dataset
 # tweets_df <- 
 #   here::here('results', 'App', 'app_data', 'tweets.rds') %>%
@@ -243,13 +249,12 @@ ggplot2::theme_set(ggplot2::theme_dark())
     plotOutput('wcloud_all_hashtags')
   )
 
-  
 .cols_summary_bottom <- 
   layout_column_wrap(
     width = "150px",
     height = "120px",
     fill = TRUE,
-    .card_usr_location,
+    .card_top_hashtags,
     .card_usr_location,
     .card_top_words)
 
@@ -378,6 +383,11 @@ server <- function(input, output, session) {
   output$wcloud_all_hashtags <- 
     renderPlot(expr = {
       gen_wordcloud_from_vec(all_hashtags)
+    })
+  
+  output$wcloud_all_words <- 
+    renderPlot(expr = {
+      gen_wordcloud_from_vec(all_words)
     })
   
   output$chngpt_plot <- 

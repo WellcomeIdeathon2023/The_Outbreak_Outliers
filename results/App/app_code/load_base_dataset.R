@@ -5,6 +5,8 @@ load_base_dataset <- function(.path_to_data){
       show_col_types = FALSE,
       progress = FALSE) %>%
     dplyr::mutate(
+      tknzd_words = stringr::str_remove_all(tknzd_words, '^\\[|\\]$'),
+      tknzd_words = stringr::str_remove_all(tknzd_words, "\\'"),
       clnd_hashtags = stringr::str_remove_all(clnd_hashtags, '^\\[|\\]$'),
       clnd_hashtags = stringr::str_remove_all(clnd_hashtags, "\\'")
     ) %>%
@@ -16,6 +18,7 @@ load_base_dataset <- function(.path_to_data){
       user_friends,
       user_favourites,
       user_verified,
+      words = tknzd_words,
       hashtags = clnd_hashtags)
 }
 
@@ -27,4 +30,5 @@ load_base_dataset <- function(.path_to_data){
   user_friends = readr::col_number(),
   user_favourites = readr::col_number(),
   user_verified = readr::col_number(),
+  tknzd_words = readr::col_character(),
   clnd_hashtags = readr::col_character())
