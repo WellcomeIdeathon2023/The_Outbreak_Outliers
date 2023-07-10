@@ -39,35 +39,46 @@ here::here('results', 'App', 'app_code') %>%
 
 #-------------------------------------------------------------------------------
 #Data
-# Tweet sentiment
-tweets <- 
-    here::here('results','App', 'app_data', 'tweets.rds') %>%
-    readRDS()
+## Base dataset
+tweets_df <- 
+  here::here('results', 'App', 'app_data', 'tweets_df.csv') %>%
+  load_base_dataset() %>%
+  add_date_aggregations(date)
 
-# Prepare the transformed data
-sentiment_df <- 
-    tweets %>% 
-    dplyr::group_by(date, VADER_label) %>%
-    dplyr::summarise(count = dplyr::n(), .groups = 'drop')
-
-
-topic_df <- 
-    tweets %>%
-    dplyr::group_by(date, topic) %>%
-    dplyr::summarise(count = dplyr::n(), .groups = 'drop')
-
-
-events_df <- data.frame(
-    event = c("WHO approve emergency BioNTech vaccine in Netherlands",
-              "COVISHIELD approved for use",
-              "Moderna vaccine approved for use in EU"),
-    date = as.Date(c(
-        "2020-12-18",
-        "2021-02-15",
-        "2021-04-30")))
-
-min_tweet_date = min(lubridate::ymd(tweets$date), na.rm = TRUE)
-max_tweet_date = max(lubridate::ymd(tweets$date), na.rm = TRUE)
+# Main dataset
+# tweets_df <- 
+#   here::here('results', 'App', 'app_data', 'tweets.rds') %>%
+#   readr::read_rds()
+# 
+# # Tweet sentiment
+# tweets <- 
+#     here::here('results','App', 'app_data', 'tweets.rds') %>%
+#     readRDS()
+# 
+# # Prepare the transformed data
+# sentiment_df <- 
+#     tweets %>% 
+#     dplyr::group_by(date, VADER_label) %>%
+#     dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+# 
+# 
+# topic_df <- 
+#     tweets %>%
+#     dplyr::group_by(date, topic) %>%
+#     dplyr::summarise(count = dplyr::n(), .groups = 'drop')
+# 
+# 
+# events_df <- data.frame(
+#     event = c("WHO approve emergency BioNTech vaccine in Netherlands",
+#               "COVISHIELD approved for use",
+#               "Moderna vaccine approved for use in EU"),
+#     date = as.Date(c(
+#         "2020-12-18",
+#         "2021-02-15",
+#         "2021-04-30")))
+# 
+# min_tweet_date = min(lubridate::ymd(tweets$date), na.rm = TRUE)
+# max_tweet_date = max(lubridate::ymd(tweets$date), na.rm = TRUE)
 # Sentiment data ---------------------------------------------------------------
 # Read in the sentiment time series
 # Todo: Allow to get sentiment analyses by different methods
@@ -125,9 +136,6 @@ fcst_sntmnt <-
 .twts_med_date <- sentiment_ts %>% dplyr::pull(Daily) %>% median(na.rm = TRUE)
 
 # Topic Modelling --------------------------------------------------------------
-topic_labels <- c('topic1', 'topic2', 'topic3', 
-                  'topic4','topic5', 'topic6')
-
 tm_df <- 
     here::here('results', 'App', 'app_data', 'topic_modelling.csv') %>%
     readr::read_csv(col_types = readr::cols(
@@ -138,13 +146,20 @@ tm_df <-
         `3` = readr::col_double(),
         `4` = readr::col_double(),  
         `5` = readr::col_double(),
-        topic = readr::col_factor(levels = c('0', '1', '2', '3', '4', '5'),
-                                  include_na = FALSE),
+        # topic = readr::col_factor(levels = c('0', '1', '2', '3', '4', '5'),
+        #                           include_na = FALSE),
+        topic = readr::col_integer(),
         date = readr::col_date(format = '%Y-%m-%d %H:%M:%S'),               
         tknzd_words = readr::col_character()
     )) %>%
     dplyr::mutate(
-        topic = factor(topic, labels = topic_labels),
+        topic = dplyr::case_when(
+          topic %in% c(0,5) ~ 'Vaccination slots',
+          topic == 1 ~ 'News',
+          topic == 2 ~ 'Stats updates',
+          topic == 3 ~ 'Vaccine hesistancy',
+          topic == 4 ~ 'Vacine support'),
+        topic = factor(topic),
         tknzd_words = stringr::str_remove_all(tknzd_words, '^\\[|\\]$')) %>%
     janitor::clean_names()
 
@@ -166,7 +181,66 @@ ggplot2::theme_set(ggplot2::theme_dark())
 .twts_date_lwr <- sentiment_ts %>% dplyr::pull(Daily) %>% min(na.rm = TRUE)
 .twts_date_upr <- sentiment_ts %>% dplyr::pull(Daily) %>% max(na.rm = TRUE)
 
-# Cards ------------------------------------------------------------------------
+# Pages ------------------------------------------------------------------------
+# Summary
+## Total tweets vs tweets scrapped
+.box_total_tweets <- 
+  value_box(
+    title = 'Number of tweets scrapped (total)',
+    value = '100,000',
+    showcase = bs_icon('chat'),
+    theme_color = 'danger',
+    height = '120px')
+
+.box_relevant_tweets <- 
+  value_box(
+    title = 'Number of vaccine related tweets',
+    value = prettyNum(nrow(tweets_df), big.mark = ','),
+    showcase = bs_icon('chat-left-dots'),
+    theme_color = 'success',
+    height = '120px')
+
+.cols_tweet_nums_boxes <- 
+  layout_column_wrap(
+    width = "150px",
+    height = "120px",
+    fill = FALSE,
+    .box_total_tweets,
+    .box_relevant_tweets)
+
+## Tweets timeline
+.card_twts_timeline <- 
+  card(
+    full_screen = TRUE,
+    card_header('How many tweets were? (per day)'),
+    plotOutput('tweet_ts')
+  )
+
+.card_usr_location <- 
+  card(
+    full_screen = TRUE,
+    card_header('Where are the tweets coming from (If known)?'),
+    plotOutput('usr_loc')
+  )
+  
+.cols_summary_bottom <- 
+  layout_column_wrap(
+    width = "150px",
+    height = "120px",
+    fill = TRUE,
+    .card_usr_location,
+    .card_usr_location,
+    .card_usr_location)
+
+## Summary page nav
+.panel_summary <- 
+  nav_panel(
+  title = 'Summary',
+  .cols_tweet_nums_boxes,
+  .card_twts_timeline,
+  .cols_summary_bottom
+  )
+
 
 # Sentiment change overtime
 .card_sentiment_brkpoint <- 
@@ -184,6 +258,12 @@ ggplot2::theme_set(ggplot2::theme_dark())
 
 # Topic modelling
 ## wordclouds
+.card_tm_wordcloud <-
+  card(
+    full_screen = TRUE,
+    card_header('Top words in topic'),
+    plotOutput('tm_wordcloud'))
+
 .card_tm_wordclouds_1 <-
     card(
         full_screen = TRUE,
@@ -237,16 +317,21 @@ word_clouds <-
 ui <- 
     page_navbar(
         title = 'The Outbreak Outliers',
+        .panel_summary,
         nav_panel(
             title = 'Sentiment',
             .card_sentiment_brkpoint,
             .card_sentiment_frcst
             ),
         nav_panel(
-            title = 'Topic modelling',
-            layout_columns(word_clouds[[1]], word_clouds[[2]], word_clouds[[3]]),
-            layout_columns(word_clouds[[4]], word_clouds[[5]], word_clouds[[6]]),
-            .card_tm_freqs
+            title = 'Topics',
+            layout_columns(.card_tm_wordcloud, .card_tm_freqs)
+        ),
+        nav_panel(
+          title = 'Forecast'
+        ),
+        nav_panel(
+          title = 'About'
         ),
         theme = bs_theme(
             bootswatch = "darkly",
@@ -257,7 +342,21 @@ ui <-
 # Define server logic required to draw plots
 server <- function(input, output, session) {
     
-    output$chngpt_plot <- 
+  output$tweet_ts <- 
+    renderPlot(expr = {
+      plot_tweets_ts(tweets_df)
+    })
+  
+  output$usr_loc <- 
+    renderPlot(expr = {
+      tweets_df %>%
+        dplyr::filter(!user_location %in% c('Other', 'Missing', 'Global')) %>%
+        plot_location_frequencies()
+    })
+  
+  
+  
+  output$chngpt_plot <- 
         renderPlot(expr = {
         plot_changepoint(sentiment_ts, 
                          Daily,
@@ -269,7 +368,7 @@ server <- function(input, output, session) {
                          .twts_med_date
                          #input$chngpt_dt
                          )
-    })
+          })
     
     output$frcst_plot <- 
         renderPlot(expr = {
