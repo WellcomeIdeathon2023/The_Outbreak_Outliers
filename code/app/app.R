@@ -90,8 +90,8 @@ events <- data.frame(
 
 vbs <- list(
   value_box(
-    title = "Total number of flags", 
-    value = "123",
+    title = "Total tweets analysed", 
+    value = nrow(tweets),
     showcase = bs_icon("bar-chart"),
     theme_color = "danger",
     height = "120px"
