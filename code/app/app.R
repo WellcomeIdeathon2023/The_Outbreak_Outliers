@@ -145,7 +145,12 @@ ui <- page_navbar(
       checkboxGroupInput(
         inputId = "topic_filter",
         label = "Select Topic",
-        choices = c(unique(topic_df$topic)),
+        choices =
+          #c(unique(topic_df$topic)),
+          c("Safety filter" = "safety_filter",
+                    "Mistrust filter" = "mistrust_filter",
+                     "Vaccine filter"  =   "vaccine_filter",
+                      "Hesitancy filter" =  "hesitancy_filter"),
         selected = c(unique(topic_df$topic))
       ),
       
@@ -313,7 +318,7 @@ server <- function(input, output) {
           # "Topic 5" = "#4285F4"
         ),
         labels = c(
-          "Topic 1" = "vaccine_filter",
+          "Vaccine filter" = "vaccine_filter",
           "Topic 2" = "hesitancy_filter",
           "Topic 3" = "safety_filter",
           "Topic 4" = "mistrust_filter"
