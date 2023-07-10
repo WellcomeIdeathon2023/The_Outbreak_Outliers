@@ -1,10 +1,7 @@
-
-#TODO- change colour palette
 gen_wordcloud_from_vec <- 
     function(.word_vec, .min_freq = 1, .max_words = 250,
                                    .random = FALSE, .rotation = 0.35, 
-                                   colours = c('#1b9e77', '#d95f02', '#7570b3', 
-                                               '#e7298a', '#66a61e', '#e6ab02')){
+                                   colours = .get_app_palette()){
         
         .freq_tbl <- 
             tibble::tibble(words = .word_vec) %>%
@@ -23,7 +20,3 @@ gen_wordcloud_from_vec <-
                              random.order = .random, rot.per = .rotation,
                              colors = colours)
     }
-
-
-
-

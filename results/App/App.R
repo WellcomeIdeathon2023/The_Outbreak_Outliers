@@ -45,6 +45,12 @@ tweets_df <-
   load_base_dataset() %>%
   add_date_aggregations(date)
 
+all_hashtags <- 
+  tweets_df %>%
+  dplyr::pull(hashtags) %>%
+  explode_python_lists() %>%
+  stringr::str_to_lower()
+
 # Main dataset
 # tweets_df <- 
 #   here::here('results', 'App', 'app_data', 'tweets.rds') %>%
@@ -188,7 +194,7 @@ ggplot2::theme_set(ggplot2::theme_dark())
   value_box(
     title = 'Number of tweets scrapped (total)',
     value = '100,000',
-    showcase = bs_icon('chat'),
+    showcase = bsicons::bs_icon('chat'),
     theme_color = 'danger',
     height = '120px')
 
@@ -196,7 +202,7 @@ ggplot2::theme_set(ggplot2::theme_dark())
   value_box(
     title = 'Number of vaccine related tweets',
     value = prettyNum(nrow(tweets_df), big.mark = ','),
-    showcase = bs_icon('chat-left-dots'),
+    showcase = bsicons::bs_icon('chat-left-dots'),
     theme_color = 'success',
     height = '120px')
 
@@ -212,8 +218,15 @@ ggplot2::theme_set(ggplot2::theme_dark())
 .card_twts_timeline <- 
   card(
     full_screen = TRUE,
-    card_header('How many tweets were? (per day)'),
+    card_header('How many tweets per day?'),
     plotOutput('tweet_ts')
+  )
+
+.card_top_words <- 
+  card(
+    full_screen = TRUE,
+    card_header('What was being said?'),
+    plotOutput('wcloud_all_words')
   )
 
 .card_usr_location <- 
@@ -222,6 +235,14 @@ ggplot2::theme_set(ggplot2::theme_dark())
     card_header('Where are the tweets coming from (If known)?'),
     plotOutput('usr_loc')
   )
+
+.card_top_hashtags <- 
+  card(
+    full_screen = TRUE,
+    card_header('What was trending?'),
+    plotOutput('wcloud_all_hashtags')
+  )
+
   
 .cols_summary_bottom <- 
   layout_column_wrap(
@@ -230,7 +251,7 @@ ggplot2::theme_set(ggplot2::theme_dark())
     fill = TRUE,
     .card_usr_location,
     .card_usr_location,
-    .card_usr_location)
+    .card_top_words)
 
 ## Summary page nav
 .panel_summary <- 
@@ -354,7 +375,10 @@ server <- function(input, output, session) {
         plot_location_frequencies()
     })
   
-  
+  output$wcloud_all_hashtags <- 
+    renderPlot(expr = {
+      gen_wordcloud_from_vec(all_hashtags)
+    })
   
   output$chngpt_plot <- 
         renderPlot(expr = {
