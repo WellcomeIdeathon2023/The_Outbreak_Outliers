@@ -12,6 +12,7 @@ library(readr)
 # 
 tweets <- readRDS("tweets.rds")
 regex <- read_csv("../../data/interim/cascading_regex_filters_results.csv")
+my_palette <- c("#FF5A5F", "#FFB400", "#007A87",  "#FFAA91", "#7B0051")
 
 
 # Prepare the transformed data
@@ -65,14 +66,35 @@ topic_df <- regex %>%
   ) 
 
 
-ggplot(data = df, aes(x = date, y = avg, fill = VADER_label))+
-  geom_line()
+attitude <- 
+  tweets %>% 
+  left_join(regex, by = "tweet_id") %>% 
+  select(-text, -VADER_compound_score, -topic, -tweet_id) %>% 
+  filter(vaccine_filter =  TRUE) %>% 
+  select(-vaccine_filter) %>% 
+  group_by(date) %>% 
+  summarise(hesitancy_filter = sum(hesitancy_filter == TRUE),
+            safety_filter = sum(safety_filter == TRUE),
+            mistrust_filter = sum(mistrust_filter == TRUE)) %>% 
+  ungroup() %>% 
+  arrange(date) %>% 
+  pivot_longer(-c(date))
 
-topic_df %>% 
-  group_by(topic) %>% 
-  summarise(val = sum(count)) %>% 
-  mutate(topic = fct_reorder(topic, val)) %>%
-  ungroup() 
+attitude_sentiment <- 
+  tweets %>% 
+  left_join(regex, by = "tweet_id") %>% 
+  select(-text, -VADER_compound_score, -topic, -tweet_id) %>% 
+  filter(vaccine_filter =  TRUE) %>% 
+  select(-vaccine_filter) %>% 
+  group_by(date, VADER_label) %>% 
+  summarise(hesitancy_filter = sum(hesitancy_filter == TRUE),
+            safety_filter = sum(safety_filter == TRUE),
+            mistrust_filter = sum(mistrust_filter == TRUE)) %>% 
+  ungroup() %>% 
+  arrange(date) %>% 
+  pivot_longer(-c(date, VADER_label))
+
+  
 
 
 events <- data.frame(
@@ -198,13 +220,20 @@ ui <- page_navbar(
     )
   ),
   nav_panel("Sentiment", 
-            card(
-              width = 12,
-              status = "primary",
-              card_header("Sentiment Analysis"),
-              plotOutput("sentimentPlot")
+            navset_card_tab(
+              title = "Time series by attitudes towards vaccine",
+              nav_panel("Mistrust", plotOutput("mistrust_plot")),
+              nav_panel("Safety", plotOutput("safety_plot")),
+              nav_panel("Hesistancy", plotOutput("hesitancy_plot"))
+            ),
+            navset_card_tab(
+              title = "Time series of attitudes by sentiment",
+              nav_panel("Mistrust", plotOutput("mistrust_sentiment")),
+              nav_panel("Safety", plotOutput("safety_sentiment")),
+              nav_panel("Hesistancy", plotOutput("hesitancy_sentiment"))
             )
             ),
+  
   
   theme = bs_theme(
     bootswatch = "darkly",
@@ -288,7 +317,6 @@ server <- function(input, output) {
   # Render the topic plot
   output$topicPlot <- renderPlot({
     filtered_topic_df <- topic_df
-    filtered_topic_df <- topic_df
     
 # This is the function that filters the output to options selected from the box menu
 # Need to be fixed
@@ -342,7 +370,6 @@ server <- function(input, output) {
   # Render the topic time series
   output$topic_time <- renderPlot({
     filtered_topic_df <- topic_df
-    filtered_topic_df <- topic_df
     
     # This is the function that filters the output to options selected from the box menu
     # Need to be fixed
@@ -388,6 +415,155 @@ server <- function(input, output) {
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d"))
     
       }) 
+  
+  # Render the time series for mistrust
+  output$mistrust_plot <- renderPlot({
+    
+    mistrust_attitude <- 
+      attitude %>% filter(name == 'mistrust_filter') 
+      
+    ggplot(mistrust_attitude, aes(x=date, y=value)) +
+      geom_point(alpha = 0.3, color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91") +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      theme(
+        legend.position = "none",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_blank(),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+  
+  # Render the time series for safety
+  output$safety_plot <- renderPlot({
+    
+    mistrust_attitude <- 
+      attitude %>% filter(name == 'safety_filter') 
+    
+    ggplot(mistrust_attitude, aes(x=date, y=value)) +
+      geom_point(alpha = 0.3, color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91") +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      theme(
+        legend.position = "none",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_blank(),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+  
+  # Render the time series for hesitancy
+  output$hesitancy_plot <- renderPlot({
+    
+    mistrust_attitude <- 
+      attitude %>% filter(name == 'hesitancy_filter') 
+    
+    ggplot(mistrust_attitude, aes(x=date, y=value)) +
+      geom_point(alpha = 0.3, color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91") +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      theme(
+        legend.position = "none",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_blank(),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+  
+  # Render the time series for mistrust
+  output$mistrust_sentiment <- renderPlot({
+    
+    mistrust_sent_df <- 
+      attitude_sentiment %>% filter(name == 'mistrust_filter') 
+    
+    ggplot(mistrust_sent_df, aes(x=date, y=value, color = VADER_label)) +
+      geom_point(alpha = 0.3) +
+      geom_smooth() +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
+      theme(
+        legend.position = "bottom",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+  
+  # Render the time series for safety sentiment
+  output$safety_sentiment <- renderPlot({
+    
+    safety_sent_df <- 
+      attitude_sentiment %>% filter(name == 'safety_filter') 
+    
+    ggplot(safety_sent_df, aes(x=date, y=value, color = VADER_label)) +
+      geom_point(alpha = 0.3) +
+      geom_smooth() +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
+      theme(
+        legend.position = "bottom",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+  
+  # Render the time series for hesitancy sentiment
+  output$hesitancy_sentiment <- renderPlot({
+    
+    hesitancy_sent_df <- 
+      attitude_sentiment %>% filter(name == 'hesitancy_filter') 
+    
+    ggplot(hesitancy_sent_df, aes(x=date, y=value, color = VADER_label)) +
+      geom_point(alpha = 0.3) +
+      geom_smooth() +
+      ylab("Number of tweets") +
+      xlab("Date") +
+      scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
+      theme(
+        legend.position = "bottom",
+        plot.background = element_rect(fill = "#2d2d2d"),
+        panel.background = element_rect(fill = "#2d2d2d"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white"),
+        legend.text = element_text(color = "white"),
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
+      ) 
+    
+  })
+
+    
   }
   
 
