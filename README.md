@@ -33,6 +33,3 @@ The project's layout is based on the requirements from Wellcome and the suggesti
 [Dzan](https://github.com/dzanahmed)
 
 [Walter](https://github.com/Walter-Muruet)
-
-
-###### GIVE US THE MONEY
