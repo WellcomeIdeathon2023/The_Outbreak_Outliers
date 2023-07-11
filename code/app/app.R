@@ -17,6 +17,7 @@ my_palette <- c("#FF5A5F", "#FFB400", "#007A87",  "#FFAA91", "#7B0051")
 
 # Prepare the transformed data
 df <- tweets %>% 
+  mutate(VADER_label = factor(VADER_label, levels = c("Positive", "Neutral", "Negative"))) |>
   group_by(date, VADER_label) %>%
   summarise(count = as.double(n()))%>%
   pivot_wider(names_from = VADER_label, values_from = count) %>%
@@ -329,9 +330,11 @@ server <- function(input, output) {
       group_by(date,VADER_label) %>% 
       summarise(n = sum(avg)) %>% 
       mutate(percentage = n / sum(n)) %>% 
+      mutate(VADER_label = factor(VADER_label, levels = c("Positive", "Neutral", "Negative"))) |> 
       
       ggplot( aes(x = date, y = percentage, fill = VADER_label))+
       geom_area()+
+      geom_hline(yintercept = 0.25)+
       # This might need to be fixed, we have some flags to be appearable 
       
       
