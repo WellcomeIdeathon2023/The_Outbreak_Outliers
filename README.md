@@ -6,13 +6,13 @@
 ## :blue_book: Quick Start
 
 To get the app running, source `runApp('code/app/vaxwatch_app.R')` and execute from command line, or by opening the file in Rstudio and running a Shiny app. 
-This RShiny-based app will display dashboards that represent our platform and final product. 
+This Shiny-based app will display dashboards that represent our platform and final product. 
 
 ## 	:notebook_with_decorative_cover: About
 
 ### :chart_with_upwards_trend: Presentation
 
-Presentation is available as PDF: `VAXWATCH.pdf`
+Presentation is available as PDF: [VAXWATCH.pdf](https://github.com/WellcomeIdeathon2023/The_Outbreak_Outliers/blob/main/VAXWATCH.pdf)
 
 ### :computer: This Repository
 
