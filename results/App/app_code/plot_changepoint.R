@@ -1,11 +1,11 @@
 
-plot_changepoint <- function(.dataset, .timeframe, .lwr_date, .upr_date, .event){
+plot_changepoint <- function(.dataset, .timeframe, .date_range_lwr, .date_range_upr, .event){
     .timeframe <- rlang::enquo(.timeframe)
     
-    if (rlang::is_missing(.lwr_date)) .lwr_date <- min(.dataset$Daily, na.rm = TRUE)
-    if (rlang::is_missing(.upr_date)) .upr_date <- max(.dataset$Daily, na.rm = TRUE)
+    if (rlang::is_missing(.date_range_lwr)) .date_range_lwr <- .get_default_lwr_date()
+    if (rlang::is_missing(.date_range_upr)) .date_range_upr <- .get_default_upr_date()
     
-    .dataset <- .subset_by_date(.dataset, .lwr_date, .upr_date)
+    .dataset <- .subset_by_date(.dataset, .date_range_lwr, .date_range_upr)
     
     .chng_point_date <- .find_chngpt_date(.dataset, !!.timeframe, .event)
     
@@ -15,12 +15,17 @@ plot_changepoint <- function(.dataset, .timeframe, .lwr_date, .upr_date, .event)
     
     .seg_out <- chng_pt_regression(.aggdataset, .chng_pt_index)
     
-    .plot_segmented(.seg_out$dataset, !!.timeframe, .seg_out$break_point_date)
+    .plot_segmented(
+        .seg_out$dataset, 
+        !!.timeframe, 
+        .seg_out$break_point_date, 
+        .date_range_lwr, 
+        .date_range_upr)
 }
 
-.subset_by_date <- function(.dataset, .lwr_date, .upr_date){
+.subset_by_date <- function(.dataset, .date_range_lwr, .date_range_upr){
     .dataset %>%
-        dplyr::filter(dplyr::between(Daily, .lwr_date, .upr_date)) %>%
+        dplyr::filter(dplyr::between(Daily, .date_range_lwr, .date_range_upr)) %>%
         dplyr::arrange(Daily)
 }
 
@@ -94,7 +99,7 @@ chng_pt_regression <- function(.dataset, .chng_pt_index){
          pcntchng = as.character(glue::glue("{.aapc_est} [{.aapc_lwr}, {.aapc_upr}]")))
 }
 
-.plot_segmented <- function(.dataset, .timeframe, .brk_dt){
+.plot_segmented <- function(.dataset, .timeframe, .brk_dt, .date_range_lwr, .date_range_upr){
     .timeframe <- rlang::enquo(.timeframe)
     
     .y_brk_dt <- 
@@ -110,6 +115,14 @@ chng_pt_regression <- function(.dataset, .chng_pt_index){
         ggplot2::geom_label(x = .brk_dt, y = .y_brk_dt,
                                   label = 'Change point') +
         ggplot2::scale_x_date(date_labels = '%d %b %Y') +
-        ggplot2::labs(x = '')
+        ggplot2::labs(x = '') +
+        ggplot2::geom_vline(
+            xintercept = .date_range_lwr, 
+            linetype = 'dotted',
+            colour = "#7B0051") + 
+        ggplot2::geom_vline(
+            xintercept = .date_range_upr, 
+            linetype = 'dotted',
+            colour = "#7B0051")
         
 }

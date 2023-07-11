@@ -6,7 +6,7 @@ plot_location_frequencies <-function(.dataset, .date_col = 'Daily', .date_range_
   .dataset %>%
     dplyr::filter(
       dplyr::between(!!.date_col, .date_range_lwr, .date_range_upr)) %>%
-    .plot_hcols(user_location, 15) +
+     .plot_vcols(user_location, 15) +
     ggplot2::labs(x = '', y = 'Number of tweets') +
     ggplot2::theme(legend.position = 'none')
     
