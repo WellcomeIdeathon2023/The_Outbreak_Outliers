@@ -260,7 +260,7 @@ ui <- page_navbar(
     about the safety of the vaccine (safety filter). The number of tweets passing through each filter, displayed on the 'Overview' page, have 
     been aggreagted by the date of tweet. A time-series of each topic has been plotted, with a sidebar slider to set boundaries for beginning 
     and start dates. To account for volitile nature of the date, a 7 day rolling average was applied to each group. All visualisations were 
-    plotted using ggplot2, a package in R. ),"),
+    plotted using ggplot2, a package in R."),
     p("‎ "),
     p("Sentiment analysis describes a computational process for determining whether a writer's attitude towards a particular topic
     is positive, negative, or neutral. In our app, we use an existing validated sentiment analysis tool, Vader analysis (https://github.com/cjhutto/vaderSentiment),
