@@ -10,6 +10,10 @@ This RShiny-based app will display dashboards that represent our platform and fi
 
 ## 	:notebook_with_decorative_cover: About
 
+### :chart_with_upwards_trend: Presentation
+
+Presentation is available as PDF: `VAXWATCH.pdf`
+
 ### :computer: This Repository
 
 Github repo for team The Outbreak Outliers (MSc HDS \@ LSTHM) - Wellcome Ideathon 2023
