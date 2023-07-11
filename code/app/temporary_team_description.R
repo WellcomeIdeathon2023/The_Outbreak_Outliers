@@ -14,26 +14,18 @@ mainPanel(
     \n
     Tweets that pass a 'vaccination' filter are passed on to a 'hesitancy' filter, that is intended to detect attitudes expressing
     hesitancy. These tweets are then passed to more specific filters to detect specific attitudes contributing to hesitancy, like concerns
-    about the safety of the vaccine (safety filter).
+    about the safety of the vaccine (safety filter). The number of tweets passing through each filter, displayed on the 'Overview' page, have 
+    been aggreagted by the date of tweet. A time-series of each topic has been plotted, with a sidebar slider to set boundaries for beginning 
+    and start dates. To account for volitile nature of the date, a 7 day rolling average was applied to each group. All visualisations were 
+    plotted using ggplot2, a package in R. 
+
     
     \n
     \n
     Sentiment analysis describes a computational process for determining whether a writer's attitude towards a particular topic
     is positive, negative, or neutral. In our app, we use an existing validated sentiment analysis tool, Vader analysis (https://github.com/cjhutto/vaderSentiment),
-    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular attitude (e.g., mention safety concerns surrounding the vaccine).
-    
-    \n
-    \n
-    The 'Overview' page 
-    
-    \n
-    \n
-    The 'Sentiment' 
-     The number of tweets by each category have been aggreagted by the date of tweet. To account for volitile nature
-     of the date, a 7 day rolling average was applied to each group. 
-     \n\n
-     Visualisation have been plotted using ggplot2, a package in R. A time-series of each topic has been plotted,
-     with a sidebar slider to set boundaries for beginning and start dates.
+    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular 
+    attitude (e.g., mention safety concerns surrounding the vaccine).
     "
-    )
+  )
 )

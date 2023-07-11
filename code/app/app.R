@@ -123,12 +123,12 @@ vbs <- list(
     # p("The 1st detail")
   ),
   value_box(
-    title = "Number of Topics", 
-    value = "4",
+    title = "Validated tweets", 
+    value = "456",
     showcase = bs_icon("graph-up"),
     theme_color = "warning",
-    height = "120px",
-    # p("Hesitancy, safety, mistrust")
+    height = "120px"
+    # p("The 2nd detail"),
     # p("The 3rd detail")
   )
 )
@@ -196,8 +196,8 @@ ui <- page_navbar(
    nav_panel("Overview",
              card(
                h2 = ("About the dashboard"),
-               p("Dashboard shows topic trends over time. The slider and checkboxes can be used to select a time range and topics. "),
-               # p("Slider and checkboxes can be used to choose what to look at. "),
+               p("Dashboard shows topic trends over time."),
+               p("Slider and checkboxes can be used to choose what to look at. "),
                height = "120px"
              ), 
             layout_column_wrap(
@@ -209,32 +209,26 @@ ui <- page_navbar(
             card(
               width = 12,
               status = "primary",
-              card_header("Number of tweets by topic over time"),
+              card_header("Topic modelling"),
               plotOutput("topic_time")
             )
     ,
     card(
       width = 12,
       status = "primary",
-      card_header("Number of tweets by topic"),
+      card_header("Topic modelling"),
       plotOutput("topicPlot")
     ),
   ),
-  nav_panel("Topic breakdown", 
-            card(
-              h2 = (""),
-              p("These panels provide context for vaccine hesitancy topics."),
-              # p("Slider and checkboxes can be used to choose what to look at. "),
-              height = "120px"
-            ), 
-            # navset_card_tab(
-            #   title = "Number of tweets expressing attitude over time",
-            #   nav_panel("Mistrust", plotOutput("mistrust_plot")),
-            #   nav_panel("Safety", plotOutput("safety_plot")),
-            #   nav_panel("Hesistancy", plotOutput("hesitancy_plot"))
-            # ),
+  nav_panel("Topic break down", 
             navset_card_tab(
-              title = "Number of tweets expressing attitude over time by sentiment",
+              title = "Time series by attitudes towards vaccine",
+              nav_panel("Mistrust", plotOutput("mistrust_plot")),
+              nav_panel("Safety", plotOutput("safety_plot")),
+              nav_panel("Hesistancy", plotOutput("hesitancy_plot"))
+            ),
+            navset_card_tab(
+              title = "Time series of attitudes by sentiment",
               nav_panel("Mistrust", plotOutput("mistrust_sentiment")),
               nav_panel("Safety", plotOutput("safety_sentiment")),
               nav_panel("Hesistancy", plotOutput("hesitancy_sentiment"))
@@ -243,52 +237,35 @@ ui <- page_navbar(
   
   nav_panel("Sentiment",
             card(
-              h2 = (""),
-              p("This panel shows the overall sentiment (positive/neutral/negative) towards vaccination within a selected timeframe."),
-              # p("Slider and checkboxes can be used to choose what to look at. "),
-              height = "120px"
-            ), 
-            card(
               width = 12,
               status = "primary",
-              card_header("Sentiment towards vaccination"),
+              card_header("Sentiment Analysis"),
               plotOutput("sentimentPlot")
             )),
   nav_panel("About",
             card(
-              h2("About us"),
+              h2("About"),
               p("Wel(l)come to our app. We are The Outbreak Outliers, a group of MSc Health Data Science students at
     the London School of Hygiene and Tropical Medicine (LSHTM). We are Dzan Ahmed Jesenkovic, Gabriel Battcock, Oliver Dolin,
     Szymon Jakobsze, Walter Muruet Gutierrez"),
-              
-              p("Our app is designed to track the number of tweets expressing attitudes that have been shown in previous work to increase
+    p("‎ "),
+    p("Our app is designed to track the number of tweets expressing attitudes that have been shown in previous work to increase
     vaccine hesitancy. Vaccine hesitancy refers to delay in acceptance or refusal of vaccination despite availability of 
     vaccination services. We identify these attitudes by running tweets through a series of filters. These filters 'detect' the
     presence of a topic, i.e., vaccination, in a particular tweet by comparing the words in the tweet with a list of keywords related 
     to that topic (e.g., 'vaccine', 'jab')."),
-    
+    p("‎ "),
     p("Tweets that pass a 'vaccination' filter are passed on to a 'hesitancy' filter, that is intended to detect attitudes expressing
     hesitancy. These tweets are then passed to more specific filters to detect specific attitudes contributing to hesitancy, like concerns
-    about the safety of the vaccine (safety filter)."),
-    
-   
+    about the safety of the vaccine (safety filter). The number of tweets passing through each filter, displayed on the 'Overview' page, have 
+    been aggreagted by the date of tweet. A time-series of each topic has been plotted, with a sidebar slider to set boundaries for beginning 
+    and start dates. To account for volitile nature of the date, a 7 day rolling average was applied to each group. All visualisations were 
+    plotted using ggplot2, a package in R. ),"),
+    p("‎ "),
     p("Sentiment analysis describes a computational process for determining whether a writer's attitude towards a particular topic
     is positive, negative, or neutral. In our app, we use an existing validated sentiment analysis tool, Vader analysis (https://github.com/cjhutto/vaderSentiment),
-    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular attitude (e.g., mention safety concerns surrounding the vaccine)."),
-    
-    
-    h2("The 'Overview' page "),
-    
-    
-   p(" The 'Sentiment' "),
-     p("The number of tweets by each category have been aggreagted by the date of tweet. To account for volitile nature
-     of the date, a 7 day rolling average was applied to each group. "),
-
-     p("Visualisation have been plotted using ggplot2, a package in R. A time-series of each topic has been plotted,
-     with a sidebar slider to set boundaries for beginning and start dates.")
-   
-              
-              
+    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular 
+    attitude (e.g., mention safety concerns surrounding the vaccine).")
             )),
   
   
@@ -428,7 +405,7 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_text(color = "white"),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      )
+      ) 
   })
 
   # Render the topic time series
@@ -476,8 +453,7 @@ server <- function(input, output) {
         axis.title = element_text(color = "white"),
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
-        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d"))+
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d"))
     
       }) 
   
@@ -501,8 +477,7 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
   
@@ -526,8 +501,7 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
   
@@ -551,8 +525,7 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
   
@@ -577,8 +550,7 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
   
@@ -603,8 +575,7 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
   
@@ -629,8 +600,7 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) +
-      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
+      ) 
     
   })
 
