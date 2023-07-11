@@ -123,12 +123,12 @@ vbs <- list(
     # p("The 1st detail")
   ),
   value_box(
-    title = "Validated tweets", 
-    value = "465,231",
+    title = "Number of Topics", 
+    value = "4",
     showcase = bs_icon("graph-up"),
     theme_color = "warning",
-    height = "120px"
-    # p("The 2nd detail"),
+    height = "120px",
+    # p("Hesitancy, safety, mistrust")
     # p("The 3rd detail")
   )
 )
@@ -196,8 +196,8 @@ ui <- page_navbar(
    nav_panel("Overview",
              card(
                h2 = ("About the dashboard"),
-               p("Dashboard shows topic trends over time."),
-               p("Slider and checkboxes can be used to choose what to look at. "),
+               p("Dashboard shows topic trends over time. The slider and checkboxes can be used to select a time range and topics. "),
+               # p("Slider and checkboxes can be used to choose what to look at. "),
                height = "120px"
              ), 
             layout_column_wrap(
@@ -209,26 +209,32 @@ ui <- page_navbar(
             card(
               width = 12,
               status = "primary",
-              card_header("Topic modelling"),
+              card_header("Number of tweets by topic over time"),
               plotOutput("topic_time")
             )
     ,
     card(
       width = 12,
       status = "primary",
-      card_header("Topic modelling"),
+      card_header("Number of tweets by topic"),
       plotOutput("topicPlot")
     ),
   ),
   nav_panel("Topic break down", 
+            card(
+              h2 = (""),
+              p("These panels provide context for vaccine hesitancy topics."),
+              # p("Slider and checkboxes can be used to choose what to look at. "),
+              height = "120px"
+            ), 
+            # navset_card_tab(
+            #   title = "Number of tweets expressing attitude over time",
+            #   nav_panel("Mistrust", plotOutput("mistrust_plot")),
+            #   nav_panel("Safety", plotOutput("safety_plot")),
+            #   nav_panel("Hesistancy", plotOutput("hesitancy_plot"))
+            # ),
             navset_card_tab(
-              title = "Time series by attitudes towards vaccine",
-              nav_panel("Mistrust", plotOutput("mistrust_plot")),
-              nav_panel("Safety", plotOutput("safety_plot")),
-              nav_panel("Hesistancy", plotOutput("hesitancy_plot"))
-            ),
-            navset_card_tab(
-              title = "Time series of attitudes by sentiment",
+              title = "Number of tweets expressing attitude over time by sentiment",
               nav_panel("Mistrust", plotOutput("mistrust_sentiment")),
               nav_panel("Safety", plotOutput("safety_sentiment")),
               nav_panel("Hesistancy", plotOutput("hesitancy_sentiment"))
@@ -237,9 +243,15 @@ ui <- page_navbar(
   
   nav_panel("Sentiment",
             card(
+              h2 = (""),
+              p("This panel shows the overall sentiment (positive/neutral/negative) towards vaccination within a selected timeframe."),
+              # p("Slider and checkboxes can be used to choose what to look at. "),
+              height = "120px"
+            ), 
+            card(
               width = 12,
               status = "primary",
-              card_header("Sentiment Analysis"),
+              card_header("Sentiment towards vaccination"),
               plotOutput("sentimentPlot")
             )),
   nav_panel("About",
