@@ -124,7 +124,7 @@ vbs <- list(
   ),
   value_box(
     title = "Validated tweets", 
-    value = "456",
+    value = "465,231",
     showcase = bs_icon("graph-up"),
     theme_color = "warning",
     height = "120px"
