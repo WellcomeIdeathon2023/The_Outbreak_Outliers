@@ -2,26 +2,11 @@
 
 **The Outbreak Outliers** - London School of Hygiene and Tropical Medicine
 
-## Noticeboard
-
--   **1st of July 2023**
-    -   You can now find `vax_tweets_v0.RDS`
-        -   This is a serialised version of the original data set with the following changes:
-            -   The following columns are added:
-                -   `tweet_id`, `roberta_loc_score`, `roberta_loc_guess`, `distilBERT_sentiment`, `distilBERT_score`
-            -   Three rows with only missing values were removed
-            -   The `date` column is already formatted as date
-            -   Square brackets were removed from the `hashtags` column
-        -   You can find it in data \> interim \> `vax_tweets_v0.RDS`
--   **30th of June 2023**
-    -   You can find the initial data inspection analysis as jupyter notebook [here](https://github.com/dzanahmed/welcome-ideathon-lshtm/blob/main/notebooks/2023-06-29-wm-initial_data_inspection.ipynb)
-    -   PDF and HTML versions can be found on the [Google Drive](https://drive.google.com/drive/folders/1KqvLO_R7nze59G0euTbrdTeu7DDfmTak)
-        -   Note that the HTML version may require downloading the files first.
 
 ## Quick Start
 
-All documentation is available at our [Google Drive](https://drive.google.com/drive/folders/1ZrdLlu4LGe-u2xZihLHmbji46DL9KnZS?usp=sharing).\
-Also check the references folder
+To get the app running, source `runApp('code/app/vaxwatch_app.R')` and execute from command line, or by opening the file in Rstudio and running a Shiny app. 
+This RShiny-based app will display dashboards that represent our platform and final product. 
 
 ## About
 
@@ -33,7 +18,7 @@ The project's layout is based on the requirements from Wellcome and the suggesti
 
 ### Us
 
-[Gabriel](https://github.com/gabrielbattcock) - Future Bollywood star in the making
+[Gabriel](https://github.com/gabrielbattcock)
 
 [Oliver](https://github.com/oliverodolin)
 
@@ -53,8 +38,6 @@ The project's layout is based on the requirements from Wellcome and the suggesti
 ├── code \<- Source code for use in this project.\
 ├── data \<- Scripts to generate simulated data (if applicable).\
 ├── features \<- Scripts to turn raw data into features.\
-├── models \<- Scripts to train models and then use trained models to make\
-│ predictions.\
 └── visualization \<- Scripts to create visualizations.\
 \|\
 ├── data\
@@ -62,8 +45,6 @@ The project's layout is based on the requirements from Wellcome and the suggesti
 ├── interim \<- Intermediate data that has been transformed.\
 ├── processed \<- The final, canonical data sets for modeling and final results.\
 └── raw \<- The original, immutable data dump.\
-│\
-├── models \<- Trained and serialized models, model predictions, or model summaries.\
 │\
 ├── notebooks \<- Jupyter notebooks. Naming convention is a number (for ordering),\
 │ the creator's initials, and a short `-` delimited description, e.g.\
