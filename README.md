@@ -1,6 +1,6 @@
-# :brain: Wellcome Ideathon 2023
+# :large_orange_diamond: Wellcome Ideathon 2023
 
-:chart: **The Outbreak Outliers** - London School of Hygiene and Tropical Medicine
+### :chart: **The Outbreak Outliers** - London School of Hygiene and Tropical Medicine
 
 
 ## :blue_book: Quick Start
