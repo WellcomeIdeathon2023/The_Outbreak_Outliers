@@ -153,7 +153,7 @@ layout_column_wrap(
 
 
 ui <- page_navbar(
-    title = "The Outbreak Outliars",
+    title = "The Outbreak Outliers",
     sidebar = sidebar(
       title = "Dashboard controls",
       # selectInput(
@@ -251,33 +251,29 @@ ui <- page_navbar(
     vaccine hesitancy. Vaccine hesitancy refers to delay in acceptance or refusal of vaccination despite availability of 
     vaccination services. We identify these attitudes by running tweets through a series of filters. These filters 'detect' the
     presence of a topic, i.e., vaccination, in a particular tweet by comparing the words in the tweet with a list of keywords related 
-    to that topic (e.g., 'vaccine', 'jab').
-    \n
-    \n
-    Tweets that pass a 'vaccination' filter are passed on to a 'hesitancy' filter, that is intended to detect attitudes expressing
+    to that topic (e.g., 'vaccine', 'jab')."),
+    
+    p("Tweets that pass a 'vaccination' filter are passed on to a 'hesitancy' filter, that is intended to detect attitudes expressing
     hesitancy. These tweets are then passed to more specific filters to detect specific attitudes contributing to hesitancy, like concerns
-    about the safety of the vaccine (safety filter).
+    about the safety of the vaccine (safety filter)."),
     
-    \n
-    \n
-    Sentiment analysis describes a computational process for determining whether a writer's attitude towards a particular topic
+   
+    p("Sentiment analysis describes a computational process for determining whether a writer's attitude towards a particular topic
     is positive, negative, or neutral. In our app, we use an existing validated sentiment analysis tool, Vader analysis (https://github.com/cjhutto/vaderSentiment),
-    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular attitude (e.g., mention safety concerns surrounding the vaccine).
+    to determine the sentiment of tweets related to vaccination, as well as the sentiment of tweets that express a particular attitude (e.g., mention safety concerns surrounding the vaccine)."),
     
-    \n
-    \n
-    The 'Overview' page 
     
-    \n
-    \n
-    The 'Sentiment' 
-     The number of tweets by each category have been aggreagted by the date of tweet. To account for volitile nature
-     of the date, a 7 day rolling average was applied to each group. 
-     \n\n
-     Visualisation have been plotted using ggplot2, a package in R. A time-series of each topic has been plotted,
-     with a sidebar slider to set boundaries for beginning and start dates.
-    "
-              )
+    h2("The 'Overview' page "),
+    
+    
+   p(" The 'Sentiment' "),
+     p("The number of tweets by each category have been aggreagted by the date of tweet. To account for volitile nature
+     of the date, a 7 day rolling average was applied to each group. "),
+
+     p("Visualisation have been plotted using ggplot2, a package in R. A time-series of each topic has been plotted,
+     with a sidebar slider to set boundaries for beginning and start dates.")
+   
+              
               
             )),
   
@@ -349,7 +345,7 @@ server <- function(input, output) {
       
       labs(x = "Date", y = "Count of Tweets", color = "7-day rolling average") +
       scale_fill_manual(
-        values = c(Negative = "#ff4444", Positive = "#00C851", Neutral = "#FFdd00"),
+        values = c(Negative = my_palette[1], Positive = my_palette[3], Neutral = my_palette[2]),
         labels = c(Negative = "Negative", Positive = "Positive", Neutral = "Neutral")
       ) +
       # geom_vline(data = events, aes(xintecept = date)) + 
@@ -391,21 +387,21 @@ server <- function(input, output) {
                alpha=.6, width=.4) +
       coord_flip() +
       xlab("") +
-      scale_color_manual(
+      scale_fill_manual(
         values = c(
-          "vaccine_filter" = "#ff4444",
-          "hesitancy_filter" = "#00C851",
-          "safety_filter" = "#FF8800",
-          "mistrust_filter" = "#FFC400"
+          "vaccine_filter" = my_palette[1],
+          "hesitancy_filter" = my_palette[3],
+          "safety_filter" = my_palette[2],
+          "mistrust_filter" = my_palette[4]
           # "Topic 5" = "#4285F4"
         ),
         labels = c(
-          "Vaccine" = "vaccine_filter",
-          "Topic 2" = "hesitancy_filter",
-          "Topic 3" = "safety_filter",
-          "Topic 4" = "mistrust_filter"
+          vaccine_filter= "Vaccine filter" ,
+          hesitancy_filter="Hesitancy filter",
+          safety_filter="Safety filter",
+          mistrust_filter="Mistrust filter"
           # "Topic 5" = "Topic 5"
-        )) +
+        ))+
       
       theme(
         legend.position = "bottom",
@@ -443,17 +439,17 @@ server <- function(input, output) {
         labels = c(Negative = "Negative", Positive = "Positive")) +
       scale_color_manual(
         values = c(
-          "vaccine_filter" = "#ff4444",
-          "hesitancy_filter" = "#00C851",
-          "safety_filter" = "#FF8800",
-          "mistrust_filter" = "#FFC400"
+          vaccine_filter = my_palette[1],
+          hesitancy_filter = my_palette[3],
+          safety_filter = my_palette[2],
+          mistrust_filter = my_palette[4]
           # "Topic 5" = "#4285F4"
         ),
         labels = c(
-          "Topic 1" = "vaccine_filter",
-          "Topic 2" = "hesitancy_filter",
-          "Topic 3" = "safety_filter",
-          "Topic 4" = "mistrust_filter"
+          vaccine_filter= "Vaccine filter" ,
+          hesitancy_filter="Hesitancy filter",
+          safety_filter="Safety filter",
+          mistrust_filter="Mistrust filter"
           # "Topic 5" = "Topic 5"
         )) +
       theme(
