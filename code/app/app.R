@@ -220,7 +220,7 @@ ui <- page_navbar(
       plotOutput("topicPlot")
     ),
   ),
-  nav_panel("Topic break down", 
+  nav_panel("Topic breakdown", 
             card(
               h2 = (""),
               p("These panels provide context for vaccine hesitancy topics."),
@@ -428,7 +428,7 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_text(color = "white"),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      )
   })
 
   # Render the topic time series
@@ -476,7 +476,8 @@ server <- function(input, output) {
         axis.title = element_text(color = "white"),
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
-        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d"))
+        legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d"))+
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
       }) 
   
@@ -500,7 +501,8 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
   
@@ -524,7 +526,8 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
   
@@ -548,7 +551,8 @@ server <- function(input, output) {
         legend.text = element_blank(),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
   
@@ -573,7 +577,8 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
   
@@ -598,7 +603,8 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
   
@@ -623,7 +629,8 @@ server <- function(input, output) {
         legend.text = element_text(color = "white"),
         legend.title = element_blank(),
         legend.background = element_rect(fill = "#2d2d2d", color = "#2d2d2d")
-      ) 
+      ) +
+      scale_x_date(limits = input$date_range, expand = c(0, 0), date_labels = "%b %d, %Y")
     
   })
 
