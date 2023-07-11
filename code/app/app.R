@@ -129,13 +129,6 @@ vbs <- list(
     height = "120px"
     # p("The 2nd detail"),
     # p("The 3rd detail")
-  ),
-  value_box(
-    h3 = "About the dashboard",
-    p("Dashboard shows topic trends over time."),
-    p("Slider and checkboxes can be used to choose what to look at. "),
-    p("The 6th detail"),
-    height = "120px"
   )
 )
 
@@ -153,7 +146,7 @@ layout_column_wrap(
 
 
 ui <- page_navbar(
-    title = "The Outbreak Outliers",
+    title = "VAXWATCH",
     sidebar = sidebar(
       title = "Dashboard controls",
       # selectInput(
@@ -197,12 +190,20 @@ ui <- page_navbar(
         value = c(min(ymd(tweets$date), na.rm = TRUE), max(ymd(tweets$date), na.rm = TRUE))
       )
     ),
+    
+    
    nav_panel("Overview",
+             card(
+               h2 = ("About the dashboard"),
+               p("Dashboard shows topic trends over time."),
+               p("Slider and checkboxes can be used to choose what to look at. "),
+               height = "120px"
+             ), 
             layout_column_wrap(
                width = "150px",
                height = "120px",
                fill = FALSE,
-               vbs[[3]],vbs[[1]], vbs[[2]]
+              vbs[[1]], vbs[[2]]
              ),
             card(
               width = 12,
@@ -472,7 +473,7 @@ server <- function(input, output) {
       
     ggplot(mistrust_attitude, aes(x=date, y=value)) +
       geom_point(alpha = 0.3, color = "#FFAA91") +
-      geom_smooth(color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91", method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       theme(
@@ -496,7 +497,7 @@ server <- function(input, output) {
     
     ggplot(mistrust_attitude, aes(x=date, y=value)) +
       geom_point(alpha = 0.3, color = "#FFAA91") +
-      geom_smooth(color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91",  method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       theme(
@@ -520,7 +521,7 @@ server <- function(input, output) {
     
     ggplot(mistrust_attitude, aes(x=date, y=value)) +
       geom_point(alpha = 0.3, color = "#FFAA91") +
-      geom_smooth(color = "#FFAA91") +
+      geom_smooth(color = "#FFAA91", method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       theme(
@@ -544,7 +545,7 @@ server <- function(input, output) {
     
     ggplot(mistrust_sent_df, aes(x=date, y=value, color = VADER_label)) +
       geom_point(alpha = 0.3) +
-      geom_smooth() +
+      geom_smooth( method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
@@ -569,7 +570,7 @@ server <- function(input, output) {
     
     ggplot(safety_sent_df, aes(x=date, y=value, color = VADER_label)) +
       geom_point(alpha = 0.3) +
-      geom_smooth() +
+      geom_smooth( method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
@@ -594,7 +595,7 @@ server <- function(input, output) {
     
     ggplot(hesitancy_sent_df, aes(x=date, y=value, color = VADER_label)) +
       geom_point(alpha = 0.3) +
-      geom_smooth() +
+      geom_smooth( method = "gam") +
       ylab("Number of tweets") +
       xlab("Date") +
       scale_color_manual(values = c("#FF5A5F", "#FFB400", "#007A87")) +
